@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide Image;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:screenshot/screenshot.dart';
 
 import '_image_painter.dart';
 import '_ported_interactive_viewer.dart';
@@ -251,6 +252,7 @@ class ImagePainterState extends State<ImagePainter> {
   late final TextEditingController _textController;
   Offset? _start, _end;
   int _strokeMultiplier = 1;
+  late final ScreenshotController _screenshotController;
 
   @override
   void initState() {
@@ -265,6 +267,7 @@ class ImagePainterState extends State<ImagePainter> {
     }
     _textController = TextEditingController();
     _isLoaded = ValueNotifier<bool>(false);
+    _screenshotController = ScreenshotController();
   }
 
   @override
@@ -392,21 +395,24 @@ class ImagePainterState extends State<ImagePainter> {
                           _scaleUpdateGesture(details, controller),
                       onInteractionEnd: (details) =>
                           _scaleEndGesture(details, controller),
-                      child: CustomPaint(
-                        size: Size(_image!.width.toDouble(),
-                            _image!.height.toDouble()),
-                        willChange: true,
-                        isComplex: true,
-                        painter: DrawImage(
-                          image: _image,
-                          points: _points,
-                          paintHistory: _paintHistory,
-                          isDragging: _inDrag,
-                          update: UpdatePoints(
-                              start: _start,
-                              end: _end,
-                              painter: _painter,
-                              mode: controller.mode),
+                      child: Screenshot(
+                        controller: _screenshotController,
+                        child: CustomPaint(
+                          size: Size(_image!.width.toDouble(),
+                              _image!.height.toDouble()),
+                          willChange: true,
+                          isComplex: true,
+                          painter: DrawImage(
+                            image: _image,
+                            points: _points,
+                            paintHistory: _paintHistory,
+                            isDragging: _inDrag,
+                            update: UpdatePoints(
+                                start: _start,
+                                end: _end,
+                                painter: _painter,
+                                mode: controller.mode),
+                          ),
                         ),
                       ),
                     );
@@ -620,6 +626,10 @@ class ImagePainterState extends State<ImagePainter> {
     final byteData =
         await _convertedImage.toByteData(format: ui.ImageByteFormat.png);
     return byteData?.buffer.asUint8List();
+  }
+
+  Future<Uint8List?> widgetToImage() async {
+    return await _screenshotController.capture();
   }
 
   void _openTextDialog() {
